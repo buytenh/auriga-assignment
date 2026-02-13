@@ -1,0 +1,324 @@
+> 1) The following code compiles on Linux. It has a number of problems,
+> however. Please locate as many of those problems as you are able and
+> provide your recommendations regarding how they can be resolved.
+>
+> typedef struct list_s
+> {
+>         struct list_s *next; /* NULL for the last item in a list */
+>         int data;
+> }
+> list_t;
+>
+> 	/* Counts the number of items in a list.
+> 	 */
+> int count_list_items(const list_t *head) {
+> 	if (head->next) {
+> 		return count_list_items(head->next) + 1;
+> 	} else {
+> 		return 1;
+> 	}
+> }
+
+- Is it valid for a linked list to be empty?  Presumably, such a list
+  would be represented by head == NULL, but count_list_items() will not
+  handle that case, and dereference a NULL pointer, as it currently
+  assumes that a list will always have at least one item in it.  If
+  lists can be empty, the function can be rewritten as follows to deal
+  with this case:
+
+	/* Counts the number of items in a list.
+	 */
+	int count_list_items(const list_t *head) {
+		if (head) {
+			return count_list_items(head->next) + 1;
+		} else {
+			return 0;
+		}
+	}
+
+- This function uses recursion, which can overflow the stack if the
+  list is long and stack size limited and the compiler doesn't optimize
+  tail recursion.  This can be addressed by writing it as a loop:
+
+	int count_list_items(const list_t *head) {
+		int list_length = 0;
+
+		while (head != NULL) {
+			list_length++;
+			head = head->next;
+		}
+
+		return list_length;
+	}
+
+
+>     /* Inserts a new list item after the one specified as the argument.
+> 	 */
+> void insert_next_to_list(list_t *item, int data) {
+> 	(item->next = malloc(sizeof(list_t)))->next = item->next;
+> 	item->next->data = data;
+> }
+
+This has a few issues:
+
+- Depending on the environment, malloc() can fail, in which case this
+  will dereference a NULL pointer.
+
+- Using an assignment expression as a value, while clever, needlessly
+  increases the cognitive load involved in manual (self-)review of the
+  code.
+
+- I'm not sufficiently familiar with the semantics of C sequence points
+  etc (and I'm not going to Google for the purpose of this assignment,
+  as that would be cheating) to be able to say whether the read from
+  item->next will necessarily be sequenced before the return value of
+  malloc() is written to item->next.  At worst, this is incorrect code,
+  and at best, it is needlessly confusing code, and I would not write
+  code like this in any case.
+
+- Although not technically incorrect in this case, I would personally
+  prefer to fully initialize the list head before inserting it into the
+  list over inserting a partially-initialized data structure and only
+  initializing the rest of it later, given how it's easy enough to just
+  do it in the more sensible order.
+
+It's unclear whether and how memory allocation failures are expected to
+be dealt with in this environment, but one way of rewriting this function
+that would address the issues listed above could be:
+
+	void insert_next_to_list(list_t *item, int data) {
+		list_t *head;
+
+		head = malloc(sizeof(list_t));
+		if (head == NULL) {
+			fprintf(stderr, "insert_next_to_list(): memory allocation failure");
+			abort();
+		}
+
+		head->next = item->next;
+		head->data = data;
+
+		item->next = head;
+	}
+
+
+>     /* Removes an item following the one specificed as the argument.
+> 	 */
+> void remove_next_from_list(list_t *item) {
+> 	 if (item->next) {
+> 		free(item->next);
+>         item->next = item->next->next;
+>      }
+> }
+
+This uses item->next after freeing it.  Avoided by:
+
+	/* Removes an item following the one specificed as the argument.
+	 */
+	void remove_next_from_list(list_t *item) {
+		list_t *item_next = item->next;
+
+		if (item_next != NULL) {
+			item->next = item_next->next;
+			free(item_next);
+		}
+	}
+
+
+> 	/* Returns item data as text.
+> 	 */
+> char *item_data(const list_t *list)
+> {
+> 	char buf[12];
+>
+> 	sprintf(buf, "%d", list->data);
+> 	return buf;
+> }
+
+The main issue is that this returns a pointer to a local variable.
+
+Also, while a buffer size of 12 is technically large enough to
+accommodate the longest string that will ever be formatted for a signed
+32-bit integer (e.g. 0x80000000 becomes "-2147483648", which consists
+of 11 bytes plus a NUL byte), both the hardcoding of the buffer size as
+well as the use of sprintf() (and not, say, snprintf()) make me a little
+nervous.
+
+(Also also, even though I have never had this happen, sprintf(3) can
+technically return an error, which this code doesn't check for.)
+
+This function could either format into a caller-specified buffer, or
+allocate a sufficiently sized buffer itself and transfer ownership of
+that buffer to the caller.  (Or, depending on whether the environment
+supports this, you could consider adding a custom printf format specifier
+to print 'list_t' items.)
+
+The assignment says "on Linux", and my Linux laptop's C library supports
+asprintf(3), which allows rewriting this function like so:
+
+	/* Returns item data as text.
+	 *
+	 * NOTE: caller is responsible for freeing the returned buffer
+	 */
+char *item_data(const list_t *list)
+{
+	char *strp;
+
+	if (asprintf(&strp, "%d", list->data) < 0)
+		return NULL;
+
+	return strp;
+}
+
+
+> 2) You need to write a program in C language, which will process messages:
+> - read pairs of message and mask from file (see Message input format)
+> - check CRC-32 for data field (see Important notes)
+> - add zero padding to the data bytes if it is not a multiple of 4
+> - divide data bytes in tetrads and apply mask to even tetrads
+> - calculate CRC-32 for new data bytes
+> - save results to output file (see Output information format)
+>  
+> Message input format:
+> |-------------------------------------------|
+> |     0   |   1         | 2...253 | 254...257  |
+> |-------------------------------------------|
+> | Type | Length |          Payload         |
+> |-------------------------------------------| 
+> |                         |   data   |  CRC-32   |
+> |-------------------------------------------| 
+> - message leaded by keyword `msg=`
+> Mask input format
+> - 32 bits value 
+> - mask leaded by keyword `mask=`
+>
+> Input file example:
+> msg=0008123456784A090E98
+> mask=A5A5A5A5
+>
+>  Output information format (for each message):
+> - message type
+> - initial message length
+> - initial message data bytes
+> - initial CRC-32
+> - modified message length
+> - modified message data bytes with mask
+> - modified CRC-32
+>
+> Just output the data above without any keywords. Separate the output
+> for different messages with a blank line.
+>  Important notes:
+> - input file name - data_in.txt
+> - output file name - data_out.txt
+> - input and output files stored in the same directory as the program itself
+> - if output file exist, it have to be updated with new information
+> - all errors have to be saved in output file
+> - all data in input file stored in ASCII hex format
+> - all data stored in ASCII hex format
+> - CRC-32 polynome 0x04C11DB7, initial value 0xFFFFFFFF
+
+I've included the requested program and the build files and a small
+corresponding testsuite and testsuite driver in the accompanying tarball.
+
+Some notes:
+
+- The diagram shows that a message can be up to 258 bytes long, but
+  from the example given, it looks like the 'length' field specifies
+  the zero-offset length of the payload field in bytes, and is itself
+  a single byte, and can therefore only describe a payload up to 255
+  bytes long, and it seems that a message can therefore only be up to
+  257 bytes in total.
+
+  This has some consequences for the implementation, for example that
+  "add zero padding to the data bytes if it is not a multiple of 4"
+  becomes impossible if the input message payload is 253 or 254 or 255
+  bytes long (since we cannot pad to 256 bytes, as that is an illegal
+  message length).  Currently, if this happens, I print an error for
+  the message, instead of processing it.
+
+- It wasn't entirely clear to me what is meant by 'mask'ing a message.
+  There was no sample output for the provided sample input, so I could
+  not reverse engineer what was meant here, and so, I assumed that it
+  means applying a logical AND, so that the original message is left
+  intact if mask=FFFFFFFF.
+
+  For the case where mask=FF and the input bytes are 12 34 56 78,
+  this can either produce 12 00 00 00 or 00 00 00 78, and I assumed
+  the latter, since the CRC is also treated as a big-endian value.
+
+- The instructions say "if output file exist, it have to be updated
+  with new information", but it's not clear to me whether 'updating'
+  means overwriting the existing file or appending to the existing
+  file.  I chose overwriting.
+
+- The CRC process is underspecified regarding polynomial bit order,
+  input data bit and byte order, whether to invert the CRC at the end
+  or not, etc.
+
+  From the provided sample input, I reverse engineered the polynomial
+  bit order, the expected input byte order (little endian), input bit
+  order (little endian), output CRC byte order (big endian), and that
+  the CRC is to be inverted upon completion, but it was a bit of a
+  puzzle to figure this out.  More documentation would have saved me
+  some time here. :)
+
+  Also slightly confusing, although documented, is that the message
+  type and length field are not CRC-protected.
+
+  Note that I bit-reversed the CRC polynomial that was given in the
+  assignment and implemented the CRC computation in reflected bit
+  order so that I can avoid having to do bit/byte swapping at the end,
+  as the specified CRC polynomial (0x04C11DB7) and the CRC of the
+  example input message are in opposite bit order from each other.
+
+- Since it wasn't specified what the solution will be judged on, I
+  decided to make a minimally functional example and not worry about
+  performance, and make reasonable assumptions wherever something was
+  unclear.
+
+- I made a bunch of assumptions regarding which C features can be used,
+  and what coding style to use and such.  I used defines rather than const
+  globals, I used const pointer annotations as those were also in the
+  previous assignment, I did not bother with restrict annotations, I
+  implemented the message handling without using flexible array members,
+  and I used two (old style) static asserts since I had a use for them
+  and they were not prohibited.
+
+- If you run the program without data_in.txt existing in the current
+  directory, it will appear to complete successfully, without printing
+  an error, which might be confusing, but there actually is an error,
+  which will be written to data_out.txt, since the instructions say
+  that "all errors have to be saved in output file":
+
+	$ ls -al data_in.txt
+	ls: cannot access 'data_in.txt': No such file or directory
+	$ ./prog
+	$ cat data_out.txt
+	Error opening data_in.txt: No such file or directory
+	$
+
+- I've had to make some guesses about the output format:
+
+  - I'm printing the message type and length as hexadecimal values.
+
+  - I'm printing the message bytes with spaces, since they are bytes,
+    and the CRC-32 bytes without spaces, as treating it as a 32-bit
+    word lines up with the way the CRC process is implemented.
+
+The program will abort if there is a parse error (for example, if an input
+line doesn't start with the expected msg= or mask=), but it will continue
+with the next message in the input file if there is an error in the message
+itself such as a length error or a CRC error.
+
+There is a small testsuite in testdata/, invoked with "./test" in the
+top-level directory, meant to be run by hand, and the expected output
+data for each of the test cases corresponds to my best guesses about
+what the program should be doing.
+
+The input parser expects msg= and mask= lines as per the specification,
+but also allows for (and skips over) blank lines and lines starting with a
+'#' character, for the benefit of the testsuite, which has annotations in
+its input file about the purpose of each test.
+
+If any of the assumptions I made do not correspond with what was intended,
+please let me know, and I can adjust the submission accordingly.

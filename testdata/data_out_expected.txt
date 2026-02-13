@@ -1,0 +1,102 @@
+00
+08
+12 34 56 78
+4a090e98
+08
+00 24 04 20
+4102d4ec
+
+00
+08
+12 34 56 78
+4a090e98
+08
+12 34 56 78
+4a090e98
+
+42
+08
+12 34 56 78
+4a090e98
+08
+00 24 04 20
+4102d4ec
+
+00
+08
+12 34 56 78
+4a090e98
+08
+12 34 56 00
+14d7f796
+
+00
+08
+12 34 56 78
+4a090e98
+08
+12 34 00 78
+a6e8f44a
+
+00
+08
+12 34 56 78
+4a090e98
+08
+12 00 56 78
+696b43d4
+
+00
+08
+12 34 56 78
+4a090e98
+08
+00 34 56 78
+b019918c
+
+Error: message is 8 bytes long but has a length field of 9
+
+Error: message has CRC 4a090e99 but expected CRC 4a090e98
+
+42
+05
+42
+4ad0cf31
+08
+42 00 00 00
+10594faa
+
+00
+08
+12 34 56 00
+14d7f796
+08
+12 34 56 00
+14d7f796
+
+00
+07
+12 34 56
+d9c1a93a
+08
+12 34 56 00
+14d7f796
+
+00
+0c
+ff ff ff ff ff ff ff ff
+2144df1c
+0c
+11 22 33 44 ff ff ff ff
+7c376d00
+
+00
+fc
+00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77
+9a647454
+fc
+00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff 00 11 22 33 44 55 66 77
+9a647454
+
+Error: can't pad message of length 255 to a multiple of 4 bytes, since the maximum message length is 255 bytes
+

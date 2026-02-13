@@ -1,0 +1,7 @@
+#!/bin/sh
+
+make || exit 1
+
+cd testdata
+../prog
+diff -u data_out.txt data_out_expected.txt && echo tests passed || echo test failures
